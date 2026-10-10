@@ -62,8 +62,10 @@ node scripts/loadtest.js http://localhost:3456 --seconds 60 --customers 20
 
 ```bash
 curl -fsSL <raw URL of deploy/setup.sh in your repo> -o setup.sh
-sudo REPO_URL=<your-repo-url> CLIENT=<client-id> bash setup.sh order.<your-domain> you@example.com <release branch>
+sudo REPO_URL=git@github.com:<you>/<repo>.git CLIENT=<client-id> bash setup.sh order.<your-domain> you@example.com <release branch>
 ```
+
+For a **private repository**, use the SSH address as above. The script makes a read-only deploy key on the server, shows it, and waits while you add it under GitHub → repository → **Settings → Deploy keys** (leave write access off). It also needs a way to fetch `setup.sh` itself: download it from GitHub while signed in, or copy it to the server with `scp`.
 
 `deploy/setup.sh` does everything below, and is safe to run again; it never overwrites `.env` or the database:
 - installs nginx, certbot, sqlite3, the firewall, Node.js 22 and pm2;
