@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Outlet Panel – {{name}}</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/staff/panel.css">
+</head>
+<body data-panel="outlet">
+  <header class="topbar">
+    <div class="logo">{{logo}} · <span id="outletName">Outlet</span></div>
+    <button class="loc-chip" id="logout" type="button" style="max-width:none"><b>Log out</b></button>
+  </header>
+
+  <main class="wrap">
+    <section id="login" class="track-card hidden" style="max-width:420px;margin:40px auto">
+      <h3>Outlet login</h3>
+      <form id="loginForm">
+        <label for="loginOutlet">Outlet</label>
+        <select id="loginOutlet" required></select>
+        <label for="token">PIN</label>
+        <input id="token" type="password" inputmode="numeric" autocomplete="current-password" pattern="\d{4,8}" required>
+        <p class="small muted" id="pinHint">Head office sets each outlet's PIN.</p>
+        <p class="error hidden" id="loginError"></p>
+        <button class="btn" style="margin-top:12px">Log in</button>
+      </form>
+    </section>
+
+    <section id="dash" class="hidden">
+      <div class="bar">
+        <div class="tabs" style="margin:0">
+          <button type="button" data-view="live" class="on">Live orders</button>
+          <button type="button" data-view="chats">Chats <span id="chatCount"></span></button>
+          <button type="button" data-view="history">History</button>
+          <button type="button" data-view="stock">Stock</button>
+        </div>
+        <label class="vegtoggle" style="margin:0"><input type="checkbox" id="accepting" style="width:auto"> Accepting orders</label>
+        <label class="vegtoggle" style="margin:0"><input type="checkbox" id="sound" style="width:auto" checked> Sound alert</label>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div id="view" style="margin-top:14px"></div>
+    </section>
+  </main>
+
+  <script src="/staff/panel.js"></script>
+</body>
+</html>

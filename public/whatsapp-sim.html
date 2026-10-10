@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>WhatsApp Simulator – {{name}}</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    /* Menu pictures and QR codes arrive as SVG in the simulator: fit them to the bubble. */
+    #chat svg { max-width: 100%; height: auto; display: block; }
+    body { background: #e5ddd5; }
+    @media (prefers-color-scheme: dark) { body { background: #0b141a; } }
+    .chat { max-width: 520px; margin: 0 auto; padding: 12px 12px 140px; }
+    .msg { max-width: 85%; padding: 8px 10px; border-radius: 10px; margin: 6px 0; white-space: pre-wrap; box-shadow: var(--shadow); overflow-wrap: anywhere; }
+    .bot { background: var(--card); }
+    .me { background: #d9fdd3; color: #111; margin-left: auto; }
+    .opts { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+    .opts button { border: 0; border-top: 1px solid var(--line); background: none; color: #128c7e; font-weight: 600; padding: 6px; text-align: left; }
+    .opts small { display: block; color: var(--muted); font-weight: 400; }
+    .ocard { background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 0.9rem; }
+    .ocard .ohead { font-weight: 700; margin-bottom: 4px; }
+    .ocard .row { display: flex; justify-content: space-between; gap: 10px; }
+    .ocard .total { font-weight: 700; border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 4px; }
+    .compose { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); padding: 10px 12px; border-top: 1px solid var(--line); }
+    .compose form, .compose .row { display: flex; gap: 8px; max-width: 520px; margin: 0 auto; }
+    .compose .row { margin-top: 8px; }
+    .compose button { width: auto; flex: none; }
+    .topbar { background: #075e54; }
+  </style>
+</head>
+<body>
+  <header class="topbar"><div class="logo">WhatsApp simulator</div><span class="small" style="margin-left:auto;opacity:.8">dev only</span></header>
+  <div class="chat" id="chat"></div>
+  <div class="compose">
+    <form id="f"><input id="t" placeholder='Try: {{orderExample}}' autocomplete="off"><button class="btn" style="width:auto">Send</button></form>
+    <div class="row">
+      <select id="loc"><option value="">📍 Share a location…</option></select>
+      <button class="btn secondary" type="button" id="gps">My GPS</button>
+      <button class="btn secondary" type="button" id="catalog" title="Send a cart from the WhatsApp catalog">🛍️ Catalog cart</button>
+    </div>
+  </div>
+  <script>
+  'use strict';
+  const chat = document.getElementById('chat');
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = (s) => esc(s).replace(/\*([^*\n]+)\*/g, '<b>$1</b>').replace(/_([^_\n]+)_/g, '<i>$1</i>');
+  const from = '91' + (() => {
+    try {
+      const saved = localStorage.getItem('sim.phone');
+      if (saved) return saved;
+    } catch { /* storage unavailable */ }
+    const p = '98' + String(Math.floor(Math.random() * 1e8)).padStart(8, '0');
+    try { localStorage.setItem('sim.phone', p); } catch { /* storage unavailable */ }
+    return p;
+  })();
+
+  function bubble(html, who) {
+    const d = document.createElement('div');
+    d.className = 'msg ' + who;
+    d.innerHTML = html;
+    chat.appendChild(d);
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  const rupees = (p) => '₹' + (p / 100).toLocaleString('en-IN', p % 100 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : {});
+
+  // WhatsApp's "Review and pay" order card. The buttons stand in for paying in
+  // WhatsApp: they send what WhatsApp's payment webhook would.
+  function orderCard(r) {
+    const o = r.order;
+    const rows = o.items.map((i) => `<div class="row"><span>${i.quantity} × ${esc(i.name)}</span><span>${rupees(i.amount.value * i.quantity)}</span></div>`).join('');
+    return `<div class="ocard">
+      <div class="ohead">🧾 Order ${esc(r.referenceId)}</div>
+      ${rows}
+      <div class="row muted"><span>Subtotal</span><span>${rupees(o.subtotal)}</span></div>
+      <div class="row muted"><span>${esc(o.tax.description)}</span><span>${rupees(o.tax.value)}</span></div>
+      ${o.shipping ? `<div class="row muted"><span>${esc(o.shipping.description)}</span><span>${rupees(o.shipping.value)}</span></div>` : ''}
+      <div class="row total"><span>Total</span><span>${rupees(r.total)}</span></div>
+    </div>${fmt(r.text)}
+    <div class="opts">
+      <button data-pay="success" data-ref="${esc(r.referenceId)}" data-amount="${r.total}" data-how="WhatsApp UPI">💳 Review and pay · WhatsApp UPI</button>
+      <button data-pay="success" data-ref="${esc(r.referenceId)}" data-amount="${r.total}" data-how="another UPI app">📲 Pay with another UPI app</button>
+      <button data-pay="failed" data-ref="${esc(r.referenceId)}" data-amount="${r.total}" data-how="">✖ Simulate a failed payment</button>
+    </div>`;
+  }
+
+  function render(r) {
+    let html = fmt(r.text);
+    if (r.type === 'order_details') html = orderCard(r);
+    if (r.type === 'order_status') html = `${fmt(r.text)}<div class="small muted" style="margin-top:6px">🧾 Order card updated: ${esc(r.status)}</div>`;
+    if (r.type === 'buttons') html += '<div class="opts">' + r.buttons.map((b) => `<button data-id="${esc(b.id)}" data-title="${esc(b.title)}">${esc(b.title)}</button>`).join('') + '</div>';
+    if (r.type === 'list') html += `<div class="small muted" style="margin-top:6px">☰ ${esc(r.button)}</div><div class="opts">` + r.sections.flatMap((s) => s.rows).map((x) => `<button data-id="${esc(x.id)}" data-title="${esc(x.title)}">${esc(x.title)}${x.description ? `<small>${esc(x.description)}</small>` : ''}</button>`).join('') + '</div>';
+    if (r.type === 'image') html = `<div style="background:#fff;border-radius:8px;line-height:0;margin-bottom:6px">${r.svg || `<img src="${esc(r.url)}" alt="" style="width:100%">`}</div>${fmt(r.text || '')}`;
+    if (r.type === 'location_request') html += '<div class="opts"><button data-loc="1">📍 Send location (use picker below)</button></div>';
+    bubble(html, 'bot');
+  }
+
+  // Messages the business sends on its own: staff replies, order status updates.
+  let outboxSeq = null;
+  async function pollOutbox() {
+    try {
+      const r = await (await fetch(`/api/dev/whatsapp/outbox?from=${from}&after=${outboxSeq ?? 1e12}`)).json();
+      if (outboxSeq !== null) r.messages.forEach(render);
+      outboxSeq = r.last;
+    } catch { /* server restarting */ }
+    setTimeout(pollOutbox, 2500);
+  }
+  pollOutbox();
+
+  async function send(msg, echo) {
+    bubble(echo, 'me');
+    const res = await fetch('/api/dev/whatsapp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, name: 'Guest', ...msg }) });
+    const replies = await res.json();
+    if (!res.ok) return bubble('⚠️ ' + esc(replies.error || 'error'), 'bot');
+    replies.forEach(render);
+  }
+
+  document.getElementById('f').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const t = document.getElementById('t');
+    if (!t.value.trim()) return;
+    send({ type: 'text', text: t.value }, esc(t.value));
+    t.value = '';
+  });
+  chat.addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.loc) return document.getElementById('loc').focus();
+    if (b.dataset.pay) {
+      const amount = Number(b.dataset.amount);
+      const ok = b.dataset.pay === 'success';
+      return send({ type: 'payment', referenceId: b.dataset.ref, status: b.dataset.pay, amount, transactionId: ok ? 'UPI' + Math.floor(Math.random() * 1e10) : null },
+        ok ? `💳 Paid ${rupees(amount)} with ${esc(b.dataset.how)}` : '✖ Payment failed');
+    }
+    send({ type: 'reply', replyId: b.dataset.id }, esc(b.dataset.title));
+  });
+  fetch('/api/localities').then((r) => r.json()).then((ls) => {
+    document.getElementById('loc').innerHTML += ls.map((l) => `<option value="${l.lat},${l.lng}">${esc(l.name)}, ${esc(l.city)}</option>`).join('')
+      + '<option value="30.9010,75.8573">Ludhiana (out of range)</option>';
+  });
+  document.getElementById('loc').addEventListener('change', (e) => {
+    if (!e.target.value) return;
+    const [lat, lng] = e.target.value.split(',').map(Number);
+    send({ type: 'location', location: { lat, lng } }, '📍 ' + esc(e.target.selectedOptions[0].textContent));
+    e.target.value = '';
+  });
+  document.getElementById('catalog').addEventListener('click', async () => {
+    const menu = (await (await fetch('/api/menu')).json()).flatMap((c) => c.items);
+    const pick = [menu[5], menu[17], menu[32]].filter(Boolean);
+    const items = pick.map((i, n) => ({ retailerId: 'RC-' + i.id, qty: n === 0 ? 2 : 1 }));
+    send({ type: 'catalog_order', items, text: '' }, '🛍️ Catalog cart: ' + pick.map((i, n) => `${items[n].qty} × ${esc(i.name)}`).join(', '));
+  });
+  document.getElementById('gps').addEventListener('click', () => navigator.geolocation?.getCurrentPosition((p) =>
+    send({ type: 'location', location: { lat: p.coords.latitude, lng: p.coords.longitude } }, '📍 Current location')));
+  </script>
+</body>
+</html>

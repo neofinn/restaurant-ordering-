@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Head Office – {{name}}</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/staff/panel.css">
+</head>
+<body data-panel="admin">
+  <header class="topbar">
+    <div class="logo">{{logo}} · Head office</div>
+    <button class="loc-chip" id="logout" type="button" style="max-width:none"><b>Log out</b></button>
+  </header>
+
+  <main class="wrap">
+    <section id="login" class="track-card hidden" style="max-width:420px;margin:40px auto">
+      <h3>Head office login</h3>
+      <p class="small muted">Outlet staff use the outlet panel at <a href="/outlet/">/outlet/</a> instead.</p>
+      <form id="loginForm">
+        <label for="token">Admin token</label>
+        <input id="token" type="password" autocomplete="current-password" required>
+        <p class="error hidden" id="loginError"></p>
+        <button class="btn" style="margin-top:12px">Log in</button>
+      </form>
+    </section>
+
+    <section id="dash" class="hidden">
+      <div class="bar">
+        <select id="outlet"><option value="">All outlets</option></select>
+        <div class="tabs" style="margin:0">
+          <button type="button" data-view="live" class="on">Live orders</button>
+          <button type="button" data-view="chats">Chats <span id="chatCount"></span></button>
+          <button type="button" data-view="history">History</button>
+          <button type="button" data-view="customers">Customers</button>
+          <button type="button" data-view="menu">Menu</button>
+          <button type="button" data-view="stock">Stock</button>
+          <button type="button" data-view="outlets">Outlets</button>
+          <button type="button" data-view="analytics">Analytics</button>
+          <button type="button" data-view="connections">Connections</button>
+        </div>
+        <label class="vegtoggle" style="margin:0"><input type="checkbox" id="accepting" style="width:auto"> Accepting orders</label>
+        <label class="vegtoggle" style="margin:0"><input type="checkbox" id="sound" style="width:auto" checked> Sound alert</label>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div id="view" style="margin-top:14px"></div>
+    </section>
+  </main>
+
+  <script src="/staff/panel.js"></script>
+  <script src="/admin/insights.js"></script>
+  <script src="/admin/control.js"></script>
+  <script src="/admin/connections.js"></script>
+</body>
+</html>

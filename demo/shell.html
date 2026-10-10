@@ -1,0 +1,578 @@
+<title>{{name}} Live Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  /* Layout: a control strip, then the three live surfaces side by side (customer web app, WhatsApp, outlet
+     dashboard) like a wall of devices, then the routing map that explains where each order went. */
+  :root {
+    --paper: #f5f3f1;
+    --panel: #ffffff;
+    --ink: #1d1715;
+    --muted: #6d625c;
+    --line: #e2dbd6;
+    --wok: #c8261e;
+    --amber: #d98f0b;
+    --leaf: #2d8746;
+    --device: #241e1c;
+    --map-land: #efebe7;
+    --map-ring: rgba(200, 38, 30, 0.10);
+    --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #141110; --panel: #1e1917; --ink: #f2ece7; --muted: #aa9e96; --line: #3a312d;
+      --wok: #ef4c3e; --amber: #f0b23c; --leaf: #4fb36a; --device: #000000; --map-land: #1b1715; --map-ring: rgba(239, 76, 62, 0.14);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #141110; --panel: #1e1917; --ink: #f2ece7; --muted: #aa9e96; --line: #3a312d;
+    --wok: #ef4c3e; --amber: #f0b23c; --leaf: #4fb36a; --device: #000000; --map-land: #1b1715; --map-ring: rgba(239, 76, 62, 0.14);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+  .wrap { max-width: 1480px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; display: grid; gap: 22px; }
+  h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(1.6rem, 1.1rem + 2vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+  h1 .mark { color: var(--wok); }
+  h2 { font-size: 1.15rem; font-weight: 600; }
+  p { margin: 0; }
+  .muted { color: var(--muted); }
+  .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--wok); }
+
+  header.top { display: flex; flex-wrap: wrap; gap: 16px 32px; align-items: end; justify-content: space-between; }
+  header.top .intro { display: grid; gap: 8px; max-width: 70ch; min-width: 0; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+  .field { display: grid; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+  select, button { font: inherit; color: var(--ink); }
+  select { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; max-width: 100%; }
+  .btn { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
+  .btn:hover { border-color: var(--wok); }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  .tryline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tryline .label { font-size: 0.85rem; font-weight: 700; margin-right: 4px; }
+  .chip { border: 1px dashed var(--line); background: transparent; border-radius: 999px; padding: 6px 12px; font-size: 0.85rem; cursor: pointer; color: var(--ink); text-align: left; }
+  .chip:hover { border-style: solid; border-color: var(--leaf); }
+  .chip q { quotes: "\201C" "\201D"; }
+
+  .tabs { display: none; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+  .tabs button { flex: 1; border: 0; background: none; border-radius: 9px; padding: 9px 6px; font-weight: 600; color: var(--muted); cursor: pointer; position: relative; }
+  .tabs button[aria-selected="true"] { background: var(--wok); color: #fff; }
+  .tabs .dot { position: absolute; top: 6px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--amber); }
+
+  .stage { display: grid; grid-template-columns: 392px 392px minmax(0, 1fr); gap: 22px; align-items: start; }
+  .surface { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+  .surface header { display: grid; gap: 2px; }
+  .surface header p { font-size: 0.88rem; }
+  .phone { width: 392px; max-width: 100%; border: 8px solid var(--device); border-radius: 34px; overflow: hidden; background: var(--device); box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.45); }
+  .phone iframe { display: block; width: 100%; height: 740px; border: 0; background: #fff; }
+  .desk { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); }
+  .desk .bar { display: flex; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--line); align-items: center; }
+  .desk .bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+  .desk .bar span { margin-left: 8px; font-size: 0.78rem; color: var(--muted); }
+  .desk iframe { display: block; width: 100%; height: 720px; border: 0; background: #fff; }
+
+  .routing { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+  .routing .head { grid-column: 1 / -1; display: grid; gap: 6px; }
+  .routing .head p { max-width: 80ch; }
+  .map { width: 100%; height: auto; display: block; background: var(--map-land); border-radius: 12px; cursor: crosshair; }
+  .map text { font-family: var(--font-body); }
+  .map .zone { fill: var(--map-ring); }
+  .map .zone-edge { fill: none; stroke: var(--wok); stroke-opacity: 0.45; stroke-width: 1.2; stroke-dasharray: 3 3; }
+  .map .ring { fill: var(--map-ring); stroke: var(--wok); stroke-opacity: 0.3; stroke-dasharray: 4 4; }
+  .map .loc { fill: var(--muted); opacity: 0.6; }
+  .map .city { fill: var(--muted); opacity: 0.55; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; }
+  .map .odot { fill: var(--wok); stroke: var(--panel); stroke-width: 2.5; }
+  .map .olabel { fill: var(--ink); stroke: var(--map-land); stroke-width: 4; paint-order: stroke; font-size: 12.5px; font-weight: 700; }
+  .map .path { stroke: var(--leaf); stroke-width: 3; stroke-linecap: round; }
+  .map .alt { stroke: var(--amber); stroke-width: 2.5; stroke-dasharray: 6 5; }
+  .map .me { fill: var(--leaf); stroke: var(--panel); stroke-width: 2.5; }
+  .map .scale line { stroke: var(--muted); stroke-width: 2; }
+  .map .scale text { fill: var(--muted); font-size: 11px; }
+  .caption { margin-top: 10px; font-size: 0.9rem; min-height: 2.6em; }
+  .caption b { color: var(--wok); }
+  .rules { display: grid; gap: 8px; margin: 0; padding-left: 1.1em; font-size: 0.9rem; }
+  .log { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
+  .log li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 0.88rem; padding: 8px 10px; border-radius: 10px; background: var(--paper); }
+  .log time { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 0.78rem; padding-top: 2px; }
+  .log .tag { font-weight: 700; }
+  .log .tag.web { color: var(--wok); }
+  .log .tag.wa { color: var(--leaf); }
+  .log .tag.outlet { color: var(--amber); }
+  .log .tag.sfx { color: var(--ink); }
+  .map .rider { fill: var(--ink); stroke: var(--panel); stroke-width: 2; }
+  .map .rider-label { fill: var(--ink); stroke: var(--map-land); stroke-width: 4; paint-order: stroke; font-size: 11.5px; font-weight: 700; }
+  .map .drop { fill: none; stroke: var(--leaf); stroke-width: 2.5; }
+  .log .empty { display: block; color: var(--muted); background: transparent; padding: 0; }
+  .side { display: grid; gap: 16px; align-content: start; min-width: 0; }
+  footer { font-size: 0.82rem; color: var(--muted); max-width: 90ch; }
+
+  @media (max-width: 1320px) {
+    .stage { grid-template-columns: 392px 392px; justify-content: center; }
+    .stage .surface.dash { grid-column: 1 / -1; }
+  }
+  .stage .surface.hq { grid-column: 1 / -1; }
+  .desk .bar select { margin-left: auto; font: inherit; font-size: 0.8rem; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: inherit; }
+  @media (max-width: 900px) {
+    .tabs { display: flex; }
+    .stage { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+    .stage .surface { width: 100%; max-width: 392px; }
+    .stage .surface.dash { max-width: none; }
+    .stage .surface:not(.on) { display: none; }
+    .phone iframe { height: min(740px, 78vh); min-height: 560px; }
+    .routing { grid-template-columns: minmax(0, 1fr); padding: 14px; }
+    .routing.off { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  .pulse { animation: pulse 1.4s ease-out 1; transform-origin: center; transform-box: fill-box; }
+  @keyframes pulse { from { transform: scale(2.2); opacity: 0.2; } to { transform: scale(1); opacity: 1; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="intro">
+      <span class="eyebrow">Interactive demo · runs in your browser</span>
+      <h1>{{name}} <span class="mark">online ordering</span></h1>
+      <p class="muted">Everything here is connected. Order in the web app or on WhatsApp, and the order goes to the nearest of the <span id="outletList">outlets</span> and shows up on that outlet's dashboard. Accept it there and the customer gets the update. Mark a WhatsApp order completed and the review request arrives about 20 seconds later (30 minutes in real life).</p>
+    </div>
+    <div class="controls">
+      <label class="field" for="gps">Pretend the customer's phone GPS is at
+        <select id="gps"></select>
+      </label>
+      <button class="btn" type="button" id="restart">Restart demo</button>
+    </div>
+  </header>
+
+  <div class="tryline" aria-label="Messages to try on WhatsApp">
+    <span class="label">Try typing on WhatsApp:</span>
+    <button class="chip" type="button" data-say="hi"><q>hi</q></button>
+    <span id="tryExamples"></span>
+    <button class="chip" type="button" data-say="Can I talk to someone about a party order for 30 people?"><q>Can I talk to someone about a party order?</q></button>
+    <button class="chip" type="button" data-say="track"><q>track</q></button>
+    <span class="muted" style="font-size:0.85rem">At checkout, pick <b>💳 Pay now (UPI)</b>: pay inside WhatsApp or with any UPI app, or scan the order QR.</span>
+  </div>
+
+  <nav class="tabs" role="tablist" aria-label="Demo screens">
+    <button type="button" role="tab" data-tab="web" aria-selected="true">Web app</button>
+    <button type="button" role="tab" data-tab="whatsapp" aria-selected="false">WhatsApp</button>
+    <button type="button" role="tab" data-tab="dash" aria-selected="false">Outlet</button>
+    <button type="button" role="tab" data-tab="hq" aria-selected="false">Head office</button>
+    <button type="button" role="tab" data-tab="routing" aria-selected="false">Routing</button>
+  </nav>
+
+  <section class="stage">
+    <div class="surface on" data-panel="web">
+      <header><h2>Customer web app</h2><p class="muted">Same steps as WhatsApp: choose <b>Delivery</b> (current location, typed address, or both) or <b>Pickup</b> (nearest outlets first), then the menu. At checkout, the WhatsApp number shows the customer's saved loyalty points.</p></header>
+      <div class="phone"><iframe id="f-web" title="Customer web app"></iframe></div>
+    </div>
+    <div class="surface" data-panel="whatsapp">
+      <header><h2>WhatsApp ordering</h2><p class="muted">Say <b>hi</b>, choose Delivery or Pickup, then share a location (picker below the chat) or type your address. The outlet is picked before the menu appears. Type orders naturally or ask for a person.</p></header>
+      <div class="phone"><iframe id="f-whatsapp" title="WhatsApp chat"></iframe></div>
+    </div>
+    <div class="surface dash" data-panel="dash">
+      <header><h2>Outlet panel</h2><p class="muted">The counter tablet at one outlet, signed in with that outlet's PIN. It sees <b>only its own orders and chats</b>; stock is read-only. A new order switches this tablet to the outlet that got it. Accept a delivery order and the best of three simulated delivery partners (Shadowfax, Porter, Borzo) is booked; if no rider comes, the next one takes over.</p></header>
+      <div class="desk"><div class="bar"><i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i><span>Outlet tablet · /outlet</span><select id="tabletOutlet" aria-label="Which outlet's tablet"></select></div><iframe id="f-outlet" title="Outlet panel"></iframe></div>
+    </div>
+    <div class="surface dash hq" data-panel="hq">
+      <header><h2>Head office panel</h2><p class="muted">For the owner: every outlet's live orders, customers (CRM and loyalty), menu and prices, <b>Stock</b> (switch dishes on or off per outlet and set how many are left), <b>Outlets</b> (pause, set outlet panel PINs) and analytics.</p></header>
+      <div class="desk"><div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>Head office · /admin</span></div><iframe id="f-admin" title="Head office panel"></iframe></div>
+    </div>
+  </section>
+
+  <section class="routing off" data-panel="routing" aria-labelledby="routing-h">
+    <div class="head">
+      <span class="eyebrow">How an order finds its outlet</span>
+      <h2 id="routing-h">One menu, one WhatsApp number, <span id="kitchens">every kitchen</span></h2>
+      <p class="muted">The WhatsApp catalog and the web menu are shared by every outlet, and the customer's location decides which kitchen cooks. Shaded areas show each outlet's zone; the whole map is deliverable. Pause an outlet on the dashboard and its neighbours take over its zone. Click anywhere on the map to see the outlet and delivery charge.</p>
+    </div>
+    <div>
+      <svg class="map" id="map" viewBox="0 0 760 520" role="img" aria-label="Map showing the outlets and their delivery areas"></svg>
+      <p class="caption" id="caption">Waiting for a location from the web app or WhatsApp…</p>
+    </div>
+    <div class="side">
+      <ol class="rules">
+        <li>Measure road distance (straight line × 1.3) from the customer to every outlet.</li>
+        <li>Keep outlets that are open and taking orders. Every outlet delivers up to <b>20 km by road</b>, so there is no blind spot between outlets.</li>
+        <li>The nearest one cooks. If it is paused or closed, the next nearest takes over.</li>
+        <li>The customer sees the <b>delivery charge</b> for their distance before ordering: ₹40 for the first 3 km, then ₹10 per km (placeholder rate card).</li>
+        <li>Further than 20 km, or every outlet closed? The customer is offered pickup.</li>
+        <li>A catalog cart sent on WhatsApp is held until the customer shares a location, then routed the same way.</li>
+        <li>When the outlet accepts a delivery order, every delivery partner is asked for a quote; the best mix of price and rider wait wins. No rider in time, or the partner cancels? The next partner is booked automatically. Rider updates reach the customer on WhatsApp. (Simulated here.)</li>
+      </ol>
+      <div>
+        <h2 style="font-size:1rem;margin-bottom:8px">Live activity</h2>
+        <ul class="log" id="log"><li class="empty">Orders, routing decisions and staff actions appear here as you use the demo.</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>Demo data: outlet addresses, coordinates, phone numbers, UPI IDs and prices are placeholders, and the UPI IDs are deliberately invalid, so no real payment can be made. Inside this demo the <b>Pay with UPI app</b> button can't open a UPI app; on a real phone it opens GPay, PhonePe, Paytm or BHIM with the amount filled in. Outlets are open 24 hours here so the demo works at any time; in the real app they follow their opening hours. Every outlet's panel PIN is 1234 in this demo. Nothing is saved: reloading the page starts a fresh demo.</footer>
+</div>
+
+<script>/*__BACKEND__*/</script>
+<script>
+'use strict';
+/*__PAGES__*/
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const short = (name) => (BRAND.outletPrefix && name.startsWith(BRAND.outletPrefix) ? name.slice(BRAND.outletPrefix.length) : name);
+// Example messages for this client (address, typed orders).
+$('tryExamples').outerHTML = [
+  ...(BRAND.demo.address ? [[BRAND.demo.address, ' (after Delivery)']] : []),
+  ...BRAND.demo.tryOrders.map((t) => [t, '']),
+].map(([t, note]) => `<button class="chip" type="button" data-say="${esc(t)}"><q>${esc(t)}</q>${note}</button>`).join('');
+const rupees = (p) => '₹' + (p / 100).toLocaleString('en-IN', p % 100 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : {});
+
+let be;
+const frames = { web: $('f-web'), whatsapp: $('f-whatsapp'), outlet: $('f-outlet'), admin: $('f-admin') };
+
+// ---- Demo GPS ---------------------------------------------------------------
+const OUTSIDE = BRAND.demo.outside;
+let gpsChoices = [];
+let custom = null;
+function fillGps() {
+  gpsChoices = [...be.localities(), ...(OUTSIDE ? [{ ...OUTSIDE, city: 'Outside' }] : [])];
+  const groups = {};
+  gpsChoices.forEach((l, i) => (groups[l.city] ||= []).push(`<option value="${i}">${esc(l.name)}</option>`));
+  $('gps').innerHTML = (custom ? '<option value="custom">Point picked on the map</option>' : '')
+    + Object.entries(groups).map(([city, opts]) => `<optgroup label="${esc(city)}">${opts.join('')}</optgroup>`).join('');
+  if (!custom) $('gps').value = String(gpsChoices.findIndex((l) => l.name === 'Sector 22'));
+}
+function gpsPoint() {
+  if ($('gps').value === 'custom' && custom) return custom;
+  return gpsChoices[Number($('gps').value)] || gpsChoices[0];
+}
+$('gps').addEventListener('change', () => {
+  const v = $('gps').value;
+  if (v !== 'custom' && custom) { custom = null; fillGps(); $('gps').value = v; }
+  preview(gpsPoint(), 'Phone GPS set to ' + gpsPoint().name);
+});
+
+// ---- Frames -----------------------------------------------------------------
+function load(frame, page, query) {
+  let html = PAGES[page];
+  if (query) html = html.replace('<head>', () => `<head><script>window.RC_QUERY = ${JSON.stringify(query)};<\/script>`);
+  frames[frame].srcdoc = html;
+}
+// The outlet tablet signs in to one outlet (demo PIN 1234 for every outlet).
+let tabletOutlet = null;
+function loadTablet(outletId) {
+  tabletOutlet = Number(outletId);
+  $('tabletOutlet').value = String(tabletOutlet);
+  try { localStorage.removeItem('rco.token'); } catch { /* storage unavailable */ }
+  frames.outlet.srcdoc = PAGES.outlet.replace('<head>', () => `<head><script>window.RC_DEMO_LOGIN = ${JSON.stringify({ outletId: tabletOutlet, pin: '1234' })};<\/script>`);
+}
+$('tabletOutlet').addEventListener('change', (e) => loadTablet(e.target.value));
+
+function clearChildStorage() {
+  try {
+    for (const k of Object.keys(localStorage)) if (/^(rc\.|rca\.|rco\.|sim\.)/.test(k)) localStorage.removeItem(k);
+  } catch { /* storage unavailable */ }
+}
+const frameOf = (win) => Object.keys(frames).find((k) => frames[k].contentWindow === win);
+
+window.addEventListener('message', async (e) => {
+  const d = e.data;
+  const from = frameOf(e.source);
+  if (!d || !d.rc || !from) return;
+  if (d.kind === 'fetch') {
+    const res = await be.request(d.method, d.url, d.body, d.token, d.ownerToken);
+    observe(from, d, res);
+    e.source.postMessage({ rc: true, reply: true, id: d.id, status: res.status, body: res.body }, '*');
+  } else if (d.kind === 'gps') {
+    const p = gpsPoint();
+    e.source.postMessage({ rc: true, reply: true, id: d.id, lat: p.lat, lng: p.lng }, '*');
+  } else if (d.kind === 'nav' && from === 'web') {
+    const url = new URL(d.url, 'https://demo.local');
+    if (url.pathname.startsWith('/track')) load('web', 'track', url.search);
+    else if (url.pathname === '/') load('web', 'web');
+  }
+});
+
+document.querySelectorAll('[data-say]').forEach((b) => b.addEventListener('click', () => {
+  showTab('whatsapp');
+  frames.whatsapp.contentWindow.postMessage({ rc: true, fill: b.dataset.say }, '*');
+}));
+
+// ---- Activity log -------------------------------------------------------------
+function log(tag, cls, html) {
+  const ul = $('log');
+  ul.querySelector('.empty')?.remove();
+  const li = document.createElement('li');
+  const t = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  li.innerHTML = `<time>${t}</time><span><span class="tag ${cls}">${tag}</span> ${html}</span>`;
+  ul.prepend(li);
+  while (ul.children.length > 30) ul.lastChild.remove();
+}
+
+function observe(from, req, res) {
+  const path = req.url.split('?')[0];
+  if (path === '/api/locate' && res.status === 200) {
+    const r = res.body;
+    const p = { lat: req.body.lat, lng: req.body.lng };
+    const where = nearestLocalityName(p);
+    if (r.outlet) log('Web app', 'web', `Customer at ${esc(where)} → <b>${esc(short(r.outlet.name))}</b> outlet, ${r.distanceKm} km`);
+    else log('Web app', 'web', `Customer at ${esc(where)}: no outlet delivers there, pickup offered`);
+    preview(p, `Web app customer at ${where}`);
+  }
+  // Pausing an outlet hands its zone to the neighbours.
+  if (req.method === 'PATCH' && (path.startsWith('/api/admin/outlets/') || path === '/api/outlet/me')) drawZones();
+  // A new or moved outlet: redraw the map and offer its tablet.
+  if (res.status < 300 && ((req.method === 'POST' && path === '/api/admin/outlets') || (req.method === 'PATCH' && path.startsWith('/api/admin/outlets/') && (req.body.lat !== undefined || req.body.mapsLink)))) {
+    drawMap();
+    const o = res.body.outlet || res.body;
+    if (req.method === 'POST') setTimeout(() => be.ensureDemoPin(o.id), 0); // after the form sets its own PIN, if any
+    if (req.method === 'POST') log('Head office', 'outlet', `New outlet <b>${esc(short(o.name))}</b> opened; nearby customers now go there`);
+    $('tabletOutlet').innerHTML = be.outlets().map((x) => `<option value="${x.id}">${esc(short(x.name))}</option>`).join('');
+    $('tabletOutlet').value = String(tabletOutlet);
+  }
+  if (path === '/api/dev/whatsapp' && req.body.type === 'location') {
+    const p = req.body.location;
+    const a = be.assignOutlet(be.outlets(), p, { fulfilment: 'delivery' });
+    const where = nearestLocalityName(p);
+    log('WhatsApp', 'wa', a.outlet ? `Location shared from ${esc(where)} → <b>${esc(short(a.outlet.name))}</b>, ${a.distanceKm} km` : `Location shared from ${esc(where)}: outside every delivery area`);
+    preview(p, `WhatsApp customer at ${where}`);
+  }
+}
+
+function wireEvents() {
+  be.orders.events.on('created', (o) => {
+    const items = o.items.map((i) => `${i.qty}× ${esc(i.name)}${i.note ? ` <i>(${esc(i.note)})</i>` : ''}`).join(', ');
+    log(o.channel === 'whatsapp' ? 'WhatsApp' : 'Web app', o.channel === 'whatsapp' ? 'wa' : 'web',
+      `Order <b>${o.code}</b> sent to <b>${esc(short(o.outlet.name))}</b> · ${rupees(o.total)} ${o.payment_method === 'upi' ? `by UPI to <b>${esc(o.upi.upiId)}</b>` : 'cash/UPI on delivery'} · ${items}${o.notes ? ` · note: ${esc(o.notes)}` : ''}`);
+    // Show the order on the tablet of the outlet that got it.
+    if (o.outlet_id !== tabletOutlet) loadTablet(o.outlet_id);
+    flagTab('dash');
+  });
+  be.orders.events.on('status', (o) => {
+    log('Outlet', 'outlet', `${esc(short(o.outlet.name))} marked <b>${o.code}</b> as ${esc(o.statusLabel.toLowerCase())}${o.channel === 'whatsapp' ? ', customer notified on WhatsApp' : ''}`);
+    if (o.channel === 'whatsapp') flagTab('whatsapp');
+  });
+  be.orders.events.on('payment', (o, previous, by) => {
+    const who = o.channel === 'whatsapp' ? 'WhatsApp' : 'Web app';
+    if (o.payment_status === 'claimed') log(who, o.channel === 'whatsapp' ? 'wa' : 'web', `Customer says they paid <b>${o.code}</b> by UPI`);
+    else if (o.payment_status === 'paid' && by === 'whatsapp') log('WhatsApp', 'wa', `Customer paid ${rupees(o.total)} for <b>${o.code}</b> inside WhatsApp; confirmed automatically, no staff check`);
+    else if (o.payment_status === 'paid') log('Outlet', 'outlet', `${esc(short(o.outlet.name))} confirmed ${rupees(o.total)} UPI payment for <b>${o.code}</b>${o.channel === 'whatsapp' ? ', customer notified' : ''}`);
+    else if (o.payment_status === 'cod') log(by === 'customer' ? who : 'Outlet', by === 'customer' ? (o.channel === 'whatsapp' ? 'wa' : 'web') : 'outlet', `<b>${o.code}</b> switched to cash/UPI on delivery`);
+    else if (o.payment_status === 'pending' && previous === 'claimed') log('Outlet', 'outlet', `${esc(short(o.outlet.name))} couldn't find the UPI payment for <b>${o.code}</b>`);
+    flagTab(by === 'customer' ? 'dash' : (o.channel === 'whatsapp' ? 'whatsapp' : 'web'));
+  });
+  be.dispatcher.events.on('delivery', (o, change) => {
+    const d = o.delivery;
+    const where = esc(short(o.outlet.name));
+    const who = esc(d.providerLabel || d.provider);
+    const compared = (d.quotes || []).map((q) => (q.reason ? `${esc(q.label)}: ${esc(q.reason)}` : `${esc(q.label)} ${rupees(q.price)}`)).join(', ');
+    const msg = {
+      booked: `<b>${who}</b> picked for <b>${o.code}</b> from ${where}${compared ? ` (compared: ${compared})` : ''}${(d.tried || []).length > 1 ? ' · moved from the previous partner' : ''}`,
+      waiting: `${who}: ${esc(d.error || 'still looking for a rider')}`,
+      allotted: `${who} assigned <b>${esc(d.rider_name || 'a rider')}</b> to <b>${o.code}</b>`,
+      arrived: `Rider ${esc(d.rider_name || '')} reached ${where} for <b>${o.code}</b>`,
+      dispatched: `Rider picked up <b>${o.code}</b>; order is out for delivery`,
+      arrived_customer_doorstep: `Rider is at the customer's door with <b>${o.code}</b>`,
+      delivered: `<b>${o.code}</b> delivered by ${who}; order completed`,
+      failed: `Rider booking failed for <b>${o.code}</b>: ${esc(d.error || '')}`,
+      own: `${where} will deliver <b>${o.code}</b> with its own rider`,
+    }[change];
+    if (msg) log('Delivery', 'sfx', msg);
+    drawRiders();
+    if (change !== 'location' && o.channel === 'whatsapp') flagTab('whatsapp');
+  });
+  be.handoffs.events.on('opened', (h) => {
+    const o = h.outlet_id ? be.orders.getOutlet(h.outlet_id) : null;
+    if (o && o.id !== tabletOutlet) loadTablet(o.id);
+    log('WhatsApp', 'wa', `Customer asked for a person → chat sent to ${o ? `<b>${esc(short(o.name))}</b> staff` : 'staff at all outlets'}`);
+    flagTab('dash');
+  });
+  be.handoffs.events.on('message', (h, dir) => {
+    if (dir === 'out') { log('Outlet', 'outlet', 'Staff replied to the customer on WhatsApp'); flagTab('whatsapp'); }
+  });
+}
+
+// ---- Routing map ------------------------------------------------------------
+// The map frames the outlets with 6 km around them, at the map's 760:520 shape.
+let B;
+let KM_LNG;
+let SCALE;
+function fitMap() {
+  const pts = be.outlets();
+  let minLat = Math.min(...pts.map((p) => p.lat));
+  let maxLat = Math.max(...pts.map((p) => p.lat));
+  let minLng = Math.min(...pts.map((p) => p.lng));
+  let maxLng = Math.max(...pts.map((p) => p.lng));
+  KM_LNG = 111.32 * Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180);
+  minLat -= 6 / 111.32; maxLat += 6 / 111.32; minLng -= 6 / KM_LNG; maxLng += 6 / KM_LNG;
+  const w = (maxLng - minLng) * KM_LNG;
+  const h = (maxLat - minLat) * 111.32;
+  if (w / h > 760 / 520) { const d = ((w * 520) / 760 - h) / 111.32 / 2; minLat -= d; maxLat += d; } else { const d = ((h * 760) / 520 - w) / KM_LNG / 2; minLng -= d; maxLng += d; }
+  B = { minLat, maxLat, minLng, maxLng };
+  SCALE = 760 / ((maxLng - minLng) * KM_LNG);
+}
+// City names at the middle of each city's known localities.
+function cityLabels() {
+  const by = {};
+  for (const l of be.localities()) (by[l.city] ||= []).push(l);
+  return Object.entries(by).filter(([, ls]) => ls.length >= 2).map(([city, ls]) => {
+    const lat = ls.reduce((t, l) => t + l.lat, 0) / ls.length;
+    const lng = ls.reduce((t, l) => t + l.lng, 0) / ls.length;
+    const x = X(lng);
+    let y = Y(lat) - 14;
+    // Keep clear of outlet pins and their labels.
+    if (be.outlets().some((o) => Math.abs(X(o.lng) + 30 - x) < 70 && Math.abs(Y(o.lat) - y) < 18)) y += 30;
+    return { city, x, y };
+  }).filter((c) => c.x > 30 && c.x < 730 && c.y > 20 && c.y < 500)
+    .map((c) => `<text x="${c.x}" y="${c.y}" text-anchor="middle" class="city">${esc(c.city.toUpperCase())}</text>`).join('');
+}
+const X = (lng) => (lng - B.minLng) * KM_LNG * SCALE;
+const Y = (lat) => (B.maxLat - lat) * 111.32 * SCALE;
+const fromXY = (x, y) => ({ lat: B.maxLat - y / (111.32 * SCALE), lng: B.minLng + x / (KM_LNG * SCALE) });
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function nearestLocalityName(p) {
+  if (p.lat > B.maxLat + 0.05 || p.lng < B.minLng - 0.05) return `outside ${BRAND.region.name}`;
+  let best = null;
+  for (const l of be.localities()) {
+    const d = Math.hypot(l.lat - p.lat, l.lng - p.lng);
+    if (!best || d < best.d) best = { d, l };
+  }
+  return best.d < 0.012 ? best.l.name : `near ${best.l.name}`;
+}
+
+// Service zones: which outlet serves each spot (nearest open outlet), on a
+// 10-unit grid. Shaded = deliverable; lines = where the serving outlet changes.
+function zonesSvg() {
+  const out = be.outlets();
+  const C = 10;
+  const cols = 760 / C;
+  const rows = 520 / C;
+  const owner = [];
+  for (let r = 0; r < rows; r++) {
+    owner.push([]);
+    for (let c = 0; c < cols; c++) {
+      const p = fromXY(c * C + C / 2, r * C + C / 2);
+      owner[r].push(be.assignOutlet(out, p, { fulfilment: 'delivery' }).outlet?.id ?? 0);
+    }
+  }
+  let fill = '';
+  let edges = '';
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (owner[r][c]) fill += `M${c * C} ${r * C}h${C}v${C}h-${C}z`;
+      if (c + 1 < cols && owner[r][c] !== owner[r][c + 1]) edges += `M${(c + 1) * C} ${r * C}v${C}`;
+      if (r + 1 < rows && owner[r][c] !== owner[r + 1][c]) edges += `M${c * C} ${(r + 1) * C}h${C}`;
+    }
+  }
+  return `<path d="${fill}" class="zone"/><path d="${edges}" class="zone-edge"/>`;
+}
+function drawZones() { const g = $('zones'); if (g) g.innerHTML = zonesSvg(); }
+
+function drawMap() {
+  const svg = $('map');
+  const out = be.outlets();
+  fitMap();
+  svg.innerHTML = `
+    <g id="zones">${zonesSvg()}</g>
+    <g id="locs">${be.localities().map((l) => `<circle cx="${X(l.lng)}" cy="${Y(l.lat)}" r="2.5" class="loc"><title>${esc(l.name)}, ${esc(l.city)}</title></circle>`).join('')}</g>
+    <g id="cities">${cityLabels()}</g>
+    <g id="route"></g>
+    <g id="riders"></g>
+    <g id="outlets">${out.map((o) => `
+      <g data-outlet="${o.id}">
+        <circle cx="${X(o.lng)}" cy="${Y(o.lat)}" r="8" class="odot"/>
+        <text x="${X(o.lng) + 12}" y="${Y(o.lat) + 4}" class="olabel">${esc(short(o.name).replace(` ${o.city}`, ''))}</text>
+      </g>`).join('')}</g>
+    <g class="scale" transform="translate(16 ${520 - 22})">
+      <line x1="0" y1="0" x2="${5 * SCALE}" y2="0"/>
+      <text x="${5 * SCALE + 8}" y="4">5 km</text>
+    </g>`;
+}
+
+function preview(p, label) {
+  const a = be.assignOutlet(be.outlets(), p, { fulfilment: 'delivery' });
+  const g = $('route');
+  if (!g) return;
+  const inside = p.lat <= B.maxLat && p.lat >= B.minLat && p.lng >= B.minLng && p.lng <= B.maxLng;
+  let html = '';
+  if (inside) {
+    if (a.outlet) html += `<line x1="${X(p.lng)}" y1="${Y(p.lat)}" x2="${X(a.outlet.lng)}" y2="${Y(a.outlet.lat)}" class="path"/>`;
+    else if (a.pickupSuggestion) html += `<line x1="${X(p.lng)}" y1="${Y(p.lat)}" x2="${X(a.pickupSuggestion.outlet.lng)}" y2="${Y(a.pickupSuggestion.outlet.lat)}" class="alt"/>`;
+    html += `<circle class="pulse" cx="${X(p.lng)}" cy="${Y(p.lat)}" r="7" class="me"/>`;
+  }
+  g.innerHTML = html;
+  document.querySelectorAll('[data-outlet] circle').forEach((c) => c.setAttribute('r', '8'));
+  const hit = a.outlet && document.querySelector(`[data-outlet="${a.outlet.id}"] circle`);
+  if (hit) hit.setAttribute('r', '11');
+  $('caption').innerHTML = a.outlet
+    ? `${esc(label)} → <b>${esc(a.outlet.name)}</b> delivers, ${a.distanceKm} km by road. Shadowfax delivery charge: <b>${rupees(be.deliveryCharge(a.distanceKm))}</b>.`
+      + (a.ranked[0].outlet.id !== a.outlet.id ? ` The nearest outlet, ${esc(short(a.ranked[0].outlet.name))}, is not taking orders.` : '')
+    : `${esc(label)}: no outlet delivers here. ${a.pickupSuggestion ? `The customer is offered pickup from <b>${esc(a.pickupSuggestion.outlet.name)}</b>, ${a.pickupSuggestion.distanceKm} km away.` : ''}`;
+}
+
+// Live Shadowfax riders (from the simulated partner's location callbacks).
+function drawRiders() {
+  const g = $('riders');
+  if (!g) return;
+  const active = be.orders.listOrders({ statuses: ['accepted', 'preparing', 'out_for_delivery'], limit: 20 })
+    .filter((o) => o.delivery && o.delivery.rider_lat != null && !['DELIVERED', 'FAILED', 'OWN', 'CANCELLED'].includes(o.delivery.status));
+  g.innerHTML = active.map((o) => {
+    const d = o.delivery;
+    return `<circle cx="${X(o.lng)}" cy="${Y(o.lat)}" r="9" class="drop"><title>Drop for ${o.code}</title></circle>
+      <circle cx="${X(d.rider_lng)}" cy="${Y(d.rider_lat)}" r="6.5" class="rider"><title>${esc(d.rider_name || 'Rider')} · ${o.code}</title></circle>
+      <text x="${X(d.rider_lng) + 10}" y="${Y(d.rider_lat) - 8}" class="rider-label">🛵 ${esc((d.rider_name || 'Rider').split(' ')[0])} · ${esc(d.label.toLowerCase())}</text>`;
+  }).join('');
+}
+
+$('map').addEventListener('click', (e) => {
+  const svg = $('map');
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  const { x, y } = pt.matrixTransform(svg.getScreenCTM().inverse());
+  custom = { ...fromXY(x, y), name: 'the point you clicked' };
+  fillGps();
+  $('gps').value = 'custom';
+  preview(custom, 'The point you clicked');
+});
+
+// ---- Tabs (phone width) -------------------------------------------------------
+function showTab(name) {
+  document.querySelectorAll('.tabs [data-tab]').forEach((b) => {
+    const on = b.dataset.tab === name;
+    b.setAttribute('aria-selected', String(on));
+    if (on) b.querySelector('.dot')?.remove();
+  });
+  document.querySelectorAll('.stage .surface').forEach((s) => s.classList.toggle('on', s.dataset.panel === name));
+  document.querySelector('.routing').classList.toggle('off', name !== 'routing');
+}
+function flagTab(name) {
+  const b = document.querySelector(`.tabs [data-tab="${name}"]`);
+  if (b && b.getAttribute('aria-selected') !== 'true' && !b.querySelector('.dot')) b.insertAdjacentHTML('beforeend', '<span class="dot" aria-label="new activity"></span>');
+}
+document.querySelectorAll('.tabs [data-tab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+// ---- Boot -------------------------------------------------------------------
+function start() {
+  be = RCBackend.createDemoBackend();
+  wireEvents();
+  custom = null;
+  fillGps();
+  drawMap();
+  const names = be.outlets().map((o) => short(o.name));
+  $('outletList').textContent = `${names.length} ${BRAND.name} outlets (${names.join(', ')})`;
+  $('kitchens').textContent = names.length === 1 ? 'one kitchen' : `${names.length} kitchens`;
+  $('log').innerHTML = '<li class="empty">Orders, routing decisions and staff actions appear here as you use the demo.</li>';
+  $('caption').textContent = 'Waiting for a location from the web app or WhatsApp…';
+  clearChildStorage();
+  load('web', 'web');
+  load('whatsapp', 'whatsapp');
+  load('admin', 'admin');
+  $('tabletOutlet').innerHTML = be.outlets().map((o) => `<option value="${o.id}">${esc(short(o.name))}</option>`).join('');
+  loadTablet((be.assignOutlet(be.outlets(), gpsPoint(), { fulfilment: 'delivery' }).outlet || be.outlets()[0]).id);
+}
+$('restart').addEventListener('click', start);
+start();
+</script>

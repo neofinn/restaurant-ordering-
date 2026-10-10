@@ -1,0 +1,51 @@
+# Ordering platform: nginx in front of the Node server.
+# setup.sh fills in __DOMAIN__ and __PORT__; certbot then adds HTTPS and the
+# http -> https redirect to this file.
+
+limit_req_zone $binary_remote_addr zone=rcf_api:10m rate=20r/s;
+
+server {
+  listen 80;
+  listen [::]:80;
+  server_name __DOMAIN__;
+
+  client_max_body_size 2m;
+  server_tokens off;
+
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml text/csv;
+  gzip_min_length 1024;
+
+  add_header X-Content-Type-Options nosniff always;
+  add_header Referrer-Policy strict-origin-when-cross-origin always;
+  add_header X-Frame-Options SAMEORIGIN always;
+
+  proxy_http_version 1.1;
+  proxy_set_header Host $host;
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header X-Forwarded-Proto $scheme;
+  proxy_read_timeout 30s;
+
+  # The app's API: a generous per-address limit stops floods, not customers.
+  # Shown for the second or two the app restarts during an update.
+  error_page 502 503 504 /502.html;
+  location = /502.html {
+    root /var/www/ordering;
+    internal;
+  }
+
+  location /api/ {
+    limit_req zone=rcf_api burst=40 nodelay;
+    limit_req_status 429;
+    proxy_pass http://127.0.0.1:__PORT__;
+  }
+
+  location = /healthz {
+    access_log off;
+    proxy_pass http://127.0.0.1:__PORT__;
+  }
+
+  location / {
+    proxy_pass http://127.0.0.1:__PORT__;
+  }
+}

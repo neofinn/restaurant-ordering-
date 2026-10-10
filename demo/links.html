@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{name}} Demo</title>
+<meta name="description" content="{{name}} online ordering demo: customer ordering, WhatsApp, outlet panel and head office panel.">
+<style>
+:root{--bg:#faf7f2;--card:#fff;--ink:#1f1a17;--muted:#6b625b;--line:#ebe4da}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161311;--card:#221d1a;--ink:#f3ede6;--muted:#b0a59b;--line:#3a322c}}
+:root[data-theme="dark"]{--bg:#161311;--card:#221d1a;--ink:#f3ede6;--muted:#b0a59b;--line:#3a322c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--brand,#d62828);color:#fff;padding:18px 16px}
+header .logo{font-weight:800;font-size:1.3rem}
+header .logo span{color:var(--accent,#f4a300)}
+main{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.35rem;margin:0 0 4px}
+p.sub{color:var(--muted);margin:0 0 20px}
+a.card{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;color:inherit;text-decoration:none}
+a.card:hover{border-color:var(--brand,#d62828)}
+a.card b{display:block;font-size:1.05rem;color:var(--brand,#d62828)}
+a.card span{color:var(--muted);font-size:.92rem}
+.note{color:var(--muted);font-size:.9rem;margin-top:20px}
+.note a{color:inherit}
+</style></head>
+<body>
+<header><div class="logo">{{logo}}</div></header>
+<main>
+  <h1>Online ordering demo</h1>
+  <p class="sub">Open each link on its own (they can be on different phones or tabs in the same browser). They share one demo: an order placed on one shows up on the others.</p>
+  <a class="card" href="order.html"><b>🛒 Customer ordering (web)</b><span>Choose delivery or pickup, pick from the menu, check out and track the order.</span></a>
+  <a class="card" href="whatsapp.html"><b>💬 Customer ordering (WhatsApp)</b><span>A stand-in for the WhatsApp chat: say "hi", get the menu as pictures, type your order.</span></a>
+  <a class="card" href="outlet.html"><b>🧑‍🍳 Outlet panel</b><span>The counter tablet at one outlet: its own orders, accept and cook, rider status. PIN <b>1234</b> for every outlet.</span></a>
+  <a class="card" href="admin.html"><b>🏢 Head office panel</b><span>Every outlet's orders, stock, outlets, customers and loyalty, menu and prices, analytics. Connections (payment gateway, WhatsApp, riders) needs the owner PIN <b>246810</b>.</span></a>
+  <p class="note">Demo data only: UPI IDs are deliberately invalid, so no real payment can be made. To start over with fresh data, open <a href="order.html?reset">order.html?reset</a>.</p>
+</main>
+</body></html>

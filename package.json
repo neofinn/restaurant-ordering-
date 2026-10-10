@@ -1,0 +1,33 @@
+{
+  "name": "restaurant-ordering-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Online ordering for multi-outlet restaurants: web app, WhatsApp ordering, nearest-outlet routing, delivery partners, CRM and analytics.",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\" \"clients/*/test/*.test.js\"",
+    "build:demo": "node scripts/build-demo.js",
+    "check": "node --disable-warning=ExperimentalWarning scripts/check.js",
+    "owner-pin": "node --disable-warning=ExperimentalWarning scripts/owner-pin.js",
+    "payments:sandbox": "node --disable-warning=ExperimentalWarning scripts/payments-sandbox.js",
+    "supabase:backfill": "node --disable-warning=ExperimentalWarning scripts/supabase-backfill.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^5.2.1",
+    "qrcode": "1.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0"
+  },
+  "optionalDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

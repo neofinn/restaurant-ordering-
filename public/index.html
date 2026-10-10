@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d62828">
+  <title>{{name}} – Order Online</title>
+  <meta name="description" content="{{description}}">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">{{logo}}</div>
+    <button class="loc-chip" id="locChip" type="button">
+      <b id="locTitle">Set location</b>
+      <small id="locSub">to see your nearest outlet</small>
+    </button>
+  </header>
+
+  <main class="wrap">
+    <div id="banner" class="banner hidden"></div>
+    <nav class="cats" id="cats"></nav>
+    <label class="vegtoggle"><input type="checkbox" id="vegOnly" style="width:auto"> Veg only</label>
+    <div id="menu"></div>
+  </main>
+
+  <div class="cartbar hidden" id="cartBar">
+    <button type="button" id="openCart"><span id="cartCount">0 items</span><span>View cart →</span></button>
+  </div>
+
+  <!-- Location picker -->
+  <div class="overlay hidden" id="locModal">
+    <div class="sheet" role="dialog" aria-labelledby="locHeading">
+      <button class="close" type="button" data-close="locModal" aria-label="Close">×</button>
+      <h3 id="locHeading">How would you like your order?</h3>
+      <div class="tabs">
+        <button type="button" data-mode="delivery" class="on">🛵 Delivery</button>
+        <button type="button" data-mode="pickup">🏃 Pickup</button>
+      </div>
+      <div id="deliveryPane">
+        <p class="small muted">Share your current location, type your full address, or both. We'll check delivery and pick your nearest outlet.</p>
+        <button class="btn" type="button" id="useGps">📍 Use my current location</button>
+        <label for="startAddress">Full address</label>
+        <textarea id="startAddress" autocomplete="street-address" placeholder="House/flat no., street, sector/phase, city"></textarea>
+        <div id="areaChoices" class="choice-row"></div>
+        <button class="btn secondary" type="button" id="findAddress" style="margin-top:8px">Find my outlet</button>
+        <div class="or">or choose your area</div>
+        <select id="locality" aria-label="Your area"><option value="">Select area…</option></select>
+        <p class="error hidden" id="locError"></p>
+      </div>
+      <div id="pickupPane" class="hidden">
+        <button class="btn secondary" type="button" id="nearestPickup">📍 Show the nearest outlet</button>
+        <p class="muted small">Or pick the outlet you'll collect from.</p>
+        <div id="outletList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart / checkout -->
+  <div class="overlay hidden" id="cartModal">
+    <div class="sheet" role="dialog" aria-labelledby="cartHeading">
+      <button class="close" type="button" data-close="cartModal" aria-label="Close">×</button>
+      <h3 id="cartHeading">Your order</h3>
+      <div id="cartLines"></div>
+      <div class="bill" id="bill"></div>
+      <form id="checkout" novalidate>
+        <label for="name">Name</label>
+        <input id="name" name="name" autocomplete="name" required>
+        <label for="phone">WhatsApp number</label>
+        <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="10-digit WhatsApp number" required>
+        <p class="small muted" style="margin:4px 0 0">Order updates, your bill and loyalty points come on this WhatsApp number.</p>
+        <p class="small" id="pointsLine" aria-live="polite"></p>
+        <div id="addressBox">
+          <label for="address">Delivery address</label>
+          <textarea id="address" name="address" autocomplete="street-address" placeholder="House/flat no., street/sector, landmark"></textarea>
+        </div>
+        <label for="notes">Cooking notes (optional)</label>
+        <input id="notes" name="notes" placeholder="e.g. less spicy">
+        <fieldset class="payopts">
+          <legend>Payment</legend>
+          <label class="payopt" id="payUpiOpt"><input type="radio" name="pay" id="payUpi" value="upi" checked>
+            <span><b>💳 Pay now by UPI</b><br><span class="small muted">GPay, PhonePe, Paytm or QR, for the exact amount</span></span></label>
+          <label class="payopt"><input type="radio" name="pay" id="payCod" value="cod">
+            <span><b>💵 Pay on <span id="payWhen">delivery</span></b><br><span class="small muted">Cash or UPI to the rider / counter</span></span></label>
+        </fieldset>
+        <label class="optin"><input type="checkbox" id="marketingOptIn" style="width:auto"> Send me offers and loyalty updates on WhatsApp</label>
+        <p class="error hidden" id="checkoutError"></p>
+        <button class="btn" type="submit" id="placeBtn">Place order</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

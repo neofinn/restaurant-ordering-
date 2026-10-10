@@ -1,0 +1,42 @@
+{
+  "id": "restaurant",
+  "name": "Your Restaurant",
+  "logo": [
+    "Your",
+    "Restaurant"
+  ],
+  "emoji": "🍽️",
+  "description": "Order online from your nearest Your Restaurant outlet.",
+  "orderExample": "2 butter naan, 1 half dal makhani and 1 full butter chicken less spicy",
+  "menuExample": "2 butter naan, 1 half dal makhani, 1 sweet lassi",
+  "colors": {
+    "brand": "#0f766e",
+    "brandDark": "#115e59",
+    "accent": "#f59e0b",
+    "menu": "#0f766e"
+  },
+  "region": {
+    "name": "the city",
+    "state": "Chandigarh",
+    "bounds": {
+      "minLat": 29,
+      "maxLat": 32.5,
+      "minLng": 74.5,
+      "maxLng": 78.5
+    }
+  },
+  "upiExample": "yourbrand.outlet@okaxis",
+  "demo": {
+    "domain": "order.example.com",
+    "address": "House 12, Sector 22-B, Chandigarh",
+    "outside": {
+      "name": "Ludhiana (outside delivery area)",
+      "lat": 30.901,
+      "lng": 75.8573
+    },
+    "tryOrders": [
+      "2 butter naan aur 1 half dal makhani, ek full butter chicken less spicy",
+      "bhaiya 1 full veg biryani and 2 sweet lassi, call before coming"
+    ]
+  }
+}

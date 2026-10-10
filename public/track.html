@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#d62828">
+  <title>Track Order – {{name}}</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="/" style="color:#fff;text-decoration:none">{{logo}}</a>
+  </header>
+  <main class="wrap">
+    <div class="track-card" id="card"><p class="muted">Loading your order…</p></div>
+    <a class="btn secondary" href="/" style="text-align:center;text-decoration:none">Order more</a>
+  </main>
+  <script>
+  'use strict';
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const rupees = (p) => '₹' + (p / 100).toLocaleString('en-IN', p % 100 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : {});
+  const code = new URLSearchParams(window.RC_QUERY || location.search).get('code');
+  const STEPS = {
+    delivery: [['placed', 'Order placed'], ['accepted', 'Accepted by outlet'], ['preparing', 'Being prepared'], ['out_for_delivery', 'Out for delivery'], ['completed', 'Delivered']],
+    pickup: [['placed', 'Order placed'], ['accepted', 'Accepted by outlet'], ['preparing', 'Being prepared'], ['ready', 'Ready for pickup'], ['completed', 'Picked up']],
+  };
+  let timer;
+
+  function riderHtml(o) {
+    const d = o.delivery;
+    if (!d || !d.riderName || ['DELIVERED', 'OWN'].includes(d.status) || o.status === 'cancelled') return '';
+    return `<div class="paybox done" style="justify-items:start;text-align:left">
+      <b>🛵 ${esc(d.label)}: ${esc(d.riderName)}</b>
+      ${d.riderPhone ? `<span class="small">Rider's number: <b>${esc(d.riderPhone)}</b></span>` : ''}
+      ${d.trackUrl ? `<a href="${esc(d.trackUrl)}" target="_blank" rel="noopener">Live rider tracking</a>` : ''}
+    </div>`;
+  }
+
+  function payHtml(o) {
+    const p = o.payment;
+    if (p.status === 'paid') return `<div class="paybox done"><b>✅ Paid ${rupees(o.total)}</b></div>`;
+    if (p.status === 'refunded') return `<div class="paybox done"><b>💸 ${rupees(o.total)} refunded</b><span class="small">It reaches your account in 5–7 working days.</span></div>`;
+    if (p.status === 'cod') return `<p class="small">💵 Pay <b>${rupees(o.total)}</b> by cash or UPI ${o.fulfilment === 'delivery' ? 'when your order arrives' : 'at pickup'}.</p>`;
+    const claimed = p.status === 'claimed';
+    const waiting = o.status === 'awaiting_payment';
+    return `<div class="paybox">
+      <b>${claimed ? '⏳ Checking your payment' : `💳 Pay ${rupees(o.total)} by UPI${waiting ? ' to confirm your order' : ''}`}</b>
+      ${waiting ? `<span class="small">${claimed ? 'Your order goes to the kitchen as soon as the outlet sees your payment.' : `The kitchen starts as soon as your payment arrives. Not paid within ${o.payWithinMinutes} minutes? The order is cancelled and nothing is charged.`}</span>` : ''}
+      <span class="small muted">To ${esc(p.payee)}${p.upiId ? ` · UPI ID <b>${esc(p.upiId)}</b>` : ''} · Ref ${esc(o.code)}</span>
+      ${claimed ? '<span class="small">Thanks! The outlet will confirm as soon as it shows in their UPI account.</span>' : p.gateway ? `
+        <a class="btn" href="${esc(p.link)}">Pay now</a>
+        <span class="small muted">Any UPI app or a card. This page updates by itself once you've paid. On a computer, scan this QR with your phone:</span>
+        <div class="qr">${p.qrSvg}</div>` : `
+        <a class="btn" href="${esc(p.link)}">Pay with UPI app</a>
+        <span class="small muted">Opens GPay, PhonePe, Paytm or BHIM with the amount filled in. On a computer, scan this QR with your phone:</span>
+        <div class="qr">${p.qrSvg}</div>
+        <button class="btn secondary" type="button" id="paidBtn">I've paid</button>`}
+      ${waiting ? '<button class="btn secondary" type="button" id="cashBtn">Pay cash instead</button>' : ''}
+    </div>`;
+  }
+
+  document.addEventListener('click', async (e) => {
+    const action = { paidBtn: 'paid', cashBtn: 'cash' }[e.target.id];
+    if (!action) return;
+    e.target.disabled = true;
+    await fetch('/api/orders/' + encodeURIComponent(code) + '/' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    load();
+  });
+
+  async function load() {
+    const card = document.getElementById('card');
+    if (!code) { card.innerHTML = '<p>No order code given.</p>'; return; }
+    const res = await fetch('/api/orders/' + encodeURIComponent(code));
+    if (!res.ok) { card.innerHTML = '<p>Order not found. Please check your order ID.</p>'; return; }
+    const o = await res.json();
+    const steps = STEPS[o.fulfilment];
+    const idx = steps.findIndex(([s]) => s === o.status);
+    const ended = o.status === 'cancelled' || o.status === 'unpaid';
+    const stepsHtml = o.status === 'unpaid'
+      ? '<p class="error">We didn\'t receive the payment in time, so this order was cancelled. Nothing was charged. Please order again.</p>'
+      : o.status === 'cancelled'
+      ? '<p class="error">This order was cancelled. Please call the outlet if you have questions.</p>'
+      : o.status === 'awaiting_payment' ? ''
+      : `<ol class="steps">${steps.map(([, label], i) => `<li class="${i <= idx ? 'done' : ''} ${i === idx ? 'current' : ''}">${label}</li>`).join('')}</ol>`;
+    card.innerHTML = `
+      <h2 style="margin:0">Order ${esc(o.code)}</h2>
+      <p class="muted small">Thanks, ${esc(o.customerName)}! ${o.status === 'completed' || ended || o.status === 'awaiting_payment' ? '' : `Estimated ${o.fulfilment === 'delivery' ? 'delivery' : 'ready'} time: about <b>${o.etaMinutes} min</b> from ordering.`}</p>
+      ${ended && o.payment.status !== 'refunded' ? '' : payHtml(o)}
+      ${stepsHtml}
+      ${riderHtml(o)}
+      ${o.loyalty && o.loyalty.points && !ended ? `<p class="small">⭐ ${o.loyalty.earned ? `You earned <b>${o.loyalty.points} loyalty points</b> on this order.` : `You'll earn <b>${o.loyalty.points} loyalty points</b> when this order is ${o.fulfilment === 'delivery' ? 'delivered' : 'picked up'}.`}</p>` : ''}
+      <p><b>${esc(o.outlet.name)}</b><br><span class="small muted">${esc(o.outlet.address)}</span><br>
+        <a href="tel:${esc(o.outlet.phone)}">📞 Call outlet</a> ·
+        <a href="https://www.google.com/maps/search/?api=1&query=${o.outlet.lat},${o.outlet.lng}" target="_blank" rel="noopener">🗺️ Directions</a></p>
+      <div class="bill">
+        ${o.items.map((i) => `<div><span>${i.qty} × ${esc(i.name)}${i.note ? ` <span class="small muted">(${esc(i.note)})</span>` : ''}</span><span>${rupees(i.price * i.qty)}</span></div>`).join('')}
+        <div><span>Packing</span><span>${rupees(o.packing)}</span></div>
+        <div><span>GST</span><span>${rupees(o.gst)}</span></div>
+        ${o.fulfilment === 'delivery' ? `<div><span>Delivery${o.deliveryKm != null ? ` (${o.deliveryKm} km)` : ''}</span><span>${o.deliveryFee ? rupees(o.deliveryFee) : 'FREE'}</span></div>` : ''}
+        <div class="total"><span>${o.payment.status === 'paid' ? 'Paid' : 'To pay'}</span><span>${rupees(o.total)}</span></div>
+      </div>`;
+    clearTimeout(timer);
+    if (!['completed', 'cancelled', 'unpaid'].includes(o.status)) timer = setTimeout(load, o.status === 'awaiting_payment' ? 4000 : 8000);
+  }
+  load().catch(() => { timer = setTimeout(load, 15000); });
+  </script>
+</body>
+</html>
