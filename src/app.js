@@ -56,15 +56,18 @@ function deliveryProviders({ onUpdate }) {
 
 function createApp({
   dbPath = config.dbPath, waClient, enableDevTools = !config.production, log = console, deliveryPartner, seed, supabase = config.supabase, fetchImpl,
-  paymentClient,
+  paymentClient, adminToken = config.adminToken,
+  // false on a platform server: payment, rider and WhatsApp keys are the
+  // platform's (src/platform/), not set from a restaurant's head office.
+  connections = true,
 } = {}) {
   const db = openDb(dbPath, seed ? { seed } : {});
   // Connections saved in Head office → Connections override .env (applied before
   // anything below reads its settings).
   const connStore = createSqliteStore(db);
   let rebuild = () => {};
-  const integrations = createIntegrations({ store: connStore, fetchImpl, log, onChange: (id) => rebuild(id) });
-  const ownerLock = createOwnerLock({ store: connStore });
+  const integrations = connections ? createIntegrations({ store: connStore, fetchImpl, log, onChange: (id) => rebuild(id) }) : null;
+  const ownerLock = connections ? createOwnerLock({ store: connStore }) : null;
   // Optional copy of the data in Supabase; off unless both settings are given.
   const sync = supabase && supabase.url && supabase.serviceKey
     ? createSupabaseSync({ db, url: supabase.url, serviceKey: supabase.serviceKey, fetch: fetchImpl, log })
@@ -77,7 +80,7 @@ function createApp({
   const stock = createStockService({ store, orders });
   const outletAdmin = createOutletAdmin({ store });
   const reports = createReports({ dbPath, store, crm, computeAnalytics });
-  const staffAuth = createStaffAuth({ store, adminToken: config.adminToken });
+  const staffAuth = createStaffAuth({ store, adminToken });
   // Dev: keep messages the business sends on its own so the simulator can show them.
   const outbox = [];
   const baseClient = waClient || createClient({ log });
@@ -265,7 +268,12 @@ function createApp({
     res.status(500).json({ error: 'Something went wrong' });
   });
 
-  return { app, db, store, orders, handoffs, bot, dispatcher, crm, menuAdmin, reviews, sync, staffAuth, stock, reports, version, integrations, ownerLock, payments, get gateway() { return gateway; } };
+  return {
+    app, db, store, orders, handoffs, bot, dispatcher, crm, menuAdmin, reviews, sync, staffAuth, stock, reports, version, integrations, ownerLock, payments,
+    get gateway() { return gateway; },
+    /** Rebuild the gateway / delivery partners after their settings changed (platform Connections). */
+    reconnect: (id) => rebuild(id),
+  };
 }
 
 module.exports = { createApp };

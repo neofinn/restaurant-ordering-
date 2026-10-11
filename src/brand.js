@@ -6,6 +6,7 @@
 // (or a path to a profile folder). Nothing else in the code names a client.
 
 const loadProfile = require('./client-profile');
+const tenantContext = require('./tenant-context');
 
 const DEFAULTS = {
   id: 'restaurant',
@@ -49,6 +50,8 @@ function withDefaults(b = {}) {
 
 /** The active client profile: { brand, outlets, menu, localities }. */
 function client() {
+  const t = tenantContext.current();
+  if (t) return t.profile;
   if (!profile) useClient(loadProfile(globalThis.process?.env.CLIENT)); // no process in the browser demo
   return profile;
 }
@@ -60,7 +63,7 @@ function useClient(p) {
   return profile;
 }
 
-const brand = () => (client(), merged);
+const brand = () => tenantContext.current()?.brand || (client(), merged);
 
 /** "Spice Route - Sector 15" -> "Sector 15". */
 const shortName = (name) => {
@@ -73,7 +76,11 @@ const fullName = (short) => (shortName(short) !== short ? short : brand().outlet
 /** What the browser pages get (window.BRAND). */
 const publicBrand = () => {
   const b = brand();
-  return { id: b.id, name: b.name, logo: b.logo, outletPrefix: b.outletPrefix, emoji: b.emoji, region: { name: b.region.name }, upiExample: b.upiExample, demo: b.demo };
+  // platform: a restaurant on a platform server (no Connections in its head office).
+  return {
+    id: b.id, name: b.name, logo: b.logo, outletPrefix: b.outletPrefix, emoji: b.emoji, region: { name: b.region.name }, upiExample: b.upiExample, demo: b.demo,
+    ...(tenantContext.current() ? { platform: true } : {}),
+  };
 };
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

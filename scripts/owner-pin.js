@@ -6,6 +6,8 @@
 //
 //   npm run owner-pin              make a random 6-digit PIN and print it
 //   npm run owner-pin -- 482915    use this PIN (6–8 digits)
+//   npm run owner-pin -- --platform [PIN]   the platform admin's Connections
+//                                  (platform server, npm run platform)
 //
 // Setting a PIN signs out every browser that had Connections unlocked.
 
@@ -15,15 +17,25 @@ const { openDb } = require('../src/db');
 const { createSqliteStore } = require('../src/store/sqlite');
 const { createOwnerLock, checkPin } = require('../src/owner-lock');
 
-let pin = process.argv[2];
+const args = process.argv.slice(2);
+const platform = args.includes('--platform');
+let pin = args.find((a) => a !== '--platform');
 if (!pin) {
   do pin = String(crypto.randomInt(100000, 1000000)); while (checkPin(pin));
 }
 const bad = checkPin(pin);
 if (bad) { console.error(bad); process.exit(1); }
 
-const db = openDb(config.dbPath);
-createOwnerLock({ store: createSqliteStore(db) }).setPin(pin, 'server');
-db.close();
-console.log(`Owner PIN for Head office → Connections: ${pin}`);
+if (platform) {
+  const { openPlatformDb, settingsStore } = require('../src/platform/db');
+  const db = openPlatformDb(config.platform.dbPath);
+  createOwnerLock({ store: settingsStore(db) }).setPin(pin, 'server');
+  db.close();
+  console.log(`Owner PIN for Platform admin → Connections: ${pin}`);
+} else {
+  const db = openDb(config.dbPath);
+  createOwnerLock({ store: createSqliteStore(db) }).setPin(pin, 'server');
+  db.close();
+  console.log(`Owner PIN for Head office → Connections: ${pin}`);
+}
 console.log('Keep it with the owner only. A running server picks it up straight away.');

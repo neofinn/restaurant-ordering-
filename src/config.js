@@ -3,6 +3,7 @@
 // Minimal .env loader so the app runs without extra dependencies.
 const fs = require('node:fs');
 const path = require('node:path');
+const tenantContext = require('./tenant-context');
 
 const envFile = path.join(__dirname, '..', '.env');
 if (fs.existsSync(envFile)) {
@@ -22,7 +23,6 @@ module.exports = {
   port: int(env.PORT, 3000),
   production: env.NODE_ENV === 'production',
   dbPath: env.DB_PATH || path.join(__dirname, '..', 'data', 'ordering.db'),
-  publicBaseUrl: (env.PUBLIC_BASE_URL || `http://localhost:${int(env.PORT, 3000)}`).replace(/\/$/, ''),
   adminToken: env.ADMIN_TOKEN || 'change-me',
   // Encrypts keys saved in Head office → Connections. Keep it secret and never
   // change it after saving keys there (they would have to be entered again).
@@ -148,6 +148,31 @@ module.exports = {
     serviceKey: env.SUPABASE_SERVICE_ROLE_KEY || '',
   },
 
+  // Platform mode (npm run platform; src/platform/): many restaurants on one
+  // server, each on <slug>.PLATFORM_DOMAIN, with the platform's payment gateway
+  // and rider accounts and weekly payouts. Rates are the platform's terms;
+  // check TDS and GST treatment with your CA.
+  platform: {
+    name: env.PLATFORM_NAME || 'Order Local',
+    // Customers' marketplace and the super-admin live here; restaurants on its subdomains.
+    domain: (env.PLATFORM_DOMAIN || '').toLowerCase(),
+    adminToken: env.PLATFORM_ADMIN_TOKEN || env.ADMIN_TOKEN || 'change-me',
+    dbPath: env.PLATFORM_DB_PATH || path.join(__dirname, '..', 'data', 'platform.db'),
+    tenantsDir: env.TENANTS_DIR || path.join(__dirname, '..', 'data', 'tenants'),
+    defaultCommissionPct: num(env.DEFAULT_COMMISSION_PCT, 18),
+    // GST the platform charges on its commission.
+    commissionGstPct: num(env.COMMISSION_GST_PCT, 18),
+    // TDS under section 194-O on the restaurant's food value.
+    tdsPct: num(env.TDS_194O_PCT, 0.1),
+    // Payment gateway fee charged to the restaurant on online orders (0 = platform absorbs it).
+    pgFeePct: num(env.RESTAURANT_PG_FEE_PCT, 0),
+    // Section 9(5): the platform (e-commerce operator) pays the 5% GST on
+    // restaurant food it collects payment for, so that GST isn't paid out.
+    platformPaysFoodGst: env.PLATFORM_PAYS_FOOD_GST !== 'off',
+    // Close last week's statements automatically on Monday morning.
+    autoClose: env.SETTLEMENT_AUTO_CLOSE !== 'off',
+  },
+
   whatsapp: {
     token: env.WHATSAPP_TOKEN || '',
     phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID || '',
@@ -163,6 +188,15 @@ module.exports = {
     goodsType: env.WHATSAPP_PAYMENTS_GOODS_TYPE || 'digital-goods',
   },
 };
+
+// Public URL customers use. On a platform server each restaurant has its own
+// (its subdomain), so this reads the current restaurant's when there is one.
+let publicBaseUrl = (env.PUBLIC_BASE_URL || `http://localhost:${int(env.PORT, 3000)}`).replace(/\/$/, '');
+Object.defineProperty(module.exports, 'publicBaseUrl', {
+  enumerable: true,
+  get: () => tenantContext.current()?.baseUrl || publicBaseUrl,
+  set: (v) => { publicBaseUrl = v; },
+});
 
 /** Which payment gateway "Pay now" uses: 'razorpay', 'phonepe' or null (plain UPI QR). */
 module.exports.paymentGateway = () => {
