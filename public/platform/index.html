@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>{{platform}} – Platform admin</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/platform/platform.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">{{platform}} · Platform admin</div>
+    <button class="loc-chip hidden" id="logout" type="button" style="max-width:none"><b>Log out</b></button>
+  </header>
+  <main class="wrap">
+    <section id="login" class="track-card hidden" style="max-width:420px;margin:40px auto">
+      <h3>Platform admin login</h3>
+      <form id="loginForm">
+        <label for="token">Platform admin token</label>
+        <input id="token" type="password" autocomplete="current-password" required>
+        <p class="error hidden" id="loginError"></p>
+        <button class="btn" style="margin-top:12px">Log in</button>
+      </form>
+    </section>
+    <section id="dash" class="hidden">
+      <div class="tabs" id="tabs" style="margin:14px 0">
+        <button type="button" data-view="overview" class="on">This week</button>
+        <button type="button" data-view="restaurants">Restaurants</button>
+        <button type="button" data-view="add">Add restaurant</button>
+        <button type="button" data-view="ledger">Ledger</button>
+        <button type="button" data-view="settlements">Weekly payouts</button>
+        <button type="button" data-view="connections">Connections</button>
+      </div>
+      <div id="msg" class="banner hidden"></div>
+      <div id="view"></div>
+    </section>
+  </main>
+  <script src="/platform/platform.js"></script>
+</body>
+</html>

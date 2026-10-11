@@ -13,6 +13,8 @@ The code names no business. Each client's name, logo, colours, wording, outlets 
 | Head office panel | `/admin/` | Owner / head office (admin token) |
 | WhatsApp simulator | `/whatsapp-sim.html` | Developers/demos (disabled when `NODE_ENV=production`) |
 
+**Platform mode (many restaurants, one server):** `npm run platform` runs any number of restaurants, each on its own subdomain with its own branding, menu and head office, using the platform's payment gateway and delivery partner accounts, with a per-order ledger, weekly statements and payouts through Razorpay Route, a marketplace page listing restaurants that deliver to the customer, and a platform admin at `/platform/`. See **[docs/PLATFORM.md](docs/PLATFORM.md)**.
+
 **Shareable demo:** `npm run build:demo` writes `dist/demo.html`, a single file with the web app, WhatsApp chat, outlet dashboard and a live routing map. It runs the real code from `src/` in the browser on an in-memory store, so no server is needed.
 
 ## How orders reach the right outlet
@@ -237,6 +239,15 @@ src/
   config.js              env settings and pricing rules
   db.js                  SQLite schema
   brand.js               which client this runs for (clients/<id>/: brand, outlets, menu)
+  tenant-context.js      platform mode: which restaurant the current request/timer is for
+  platform/              platform mode (docs/PLATFORM.md)
+    app.js               host routing, webhook fan-out, marketplace and platform admin APIs
+    tenants.js           one app per restaurant, each with its own database
+    registry.js          restaurants: onboarding, details, head office tokens, menu CSV
+    settlement.js        per-order ledger, weekly statements, Route release, bank file
+    route.js             Razorpay Route client (transfers on hold, release, reversals)
+    db.js                platform database
+    server.js            npm run platform
   client-profile.js      loads the profile folder named by CLIENT
   preflight.js           go-live checks (npm run check; production refuses unsafe settings)
   razorpay.js, gateway.js  payment links, webhook confirmation, refunds (Razorpay)

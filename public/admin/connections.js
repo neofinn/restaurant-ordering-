@@ -8,6 +8,8 @@
 // Loaded after staff/panel.js and insights.js; registers its view on RCInsights.
 
 (() => {
+  // On a platform server the keys are the platform's: no Connections here.
+  if (window.BRAND?.platform) { document.querySelector('[data-view="connections"]')?.remove(); return; }
   const $ = (id) => document.getElementById(id);
   const S = { data: null, msg: {}, busy: '', dirty: new Set(), unlock: '', lockMsg: '', idleTimer: null, pinMsg: null, showPin: false };
   const call = (path, opts = {}) => window.RCAdmin.api(path, { ...opts, headers: { 'X-Owner-Unlock': S.unlock } })

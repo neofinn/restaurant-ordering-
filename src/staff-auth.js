@@ -36,6 +36,8 @@ class AuthError extends Error {
   constructor(message, status = 401) { super(message); this.status = status; }
 }
 
+// adminToken: the head office token, or a function token -> true for one
+// (platform mode: each restaurant's own token, kept hashed).
 function createStaffAuth({ store, adminToken }) {
   const fails = new Map(); // outletId -> { n, until }
 
@@ -76,7 +78,7 @@ function createStaffAuth({ store, adminToken }) {
   /** Bearer token -> { role: 'admin' } | { role: 'outlet', outletId } | null */
   function resolve(token, now = new Date()) {
     if (!token) return null;
-    if (adminToken && sameText(token, adminToken)) return { role: 'admin' };
+    if (typeof adminToken === 'function' ? adminToken(token) : adminToken && sameText(token, adminToken)) return { role: 'admin' };
     const s = store.staffSession(tokenHash(token), now.toISOString());
     return s ? { role: 'outlet', outletId: s.outlet_id } : null;
   }

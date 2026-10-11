@@ -443,6 +443,18 @@ $('checkout').addEventListener('submit', async (e) => {
 (async function init() {
   loadLocalities().catch(() => {});
   try { siteConfig = await api('/config'); } catch { /* charges still show on the bill */ }
+  // Came from the marketplace with a location: use it straight away.
+  const q = new URLSearchParams(location.search);
+  const qLat = Number(q.get('lat'));
+  const qLng = Number(q.get('lng'));
+  if (q.has('lat') && Number.isFinite(qLat) && Number.isFinite(qLng)) {
+    history.replaceState(null, '', location.pathname + location.hash);
+    try {
+      await locate(qLat, qLng, q.get('label') || 'Your location');
+      await loadMenu();
+      return;
+    } catch { /* fall back to asking */ }
+  }
   if (state.location) {
     renderHeader();
     // Re-check assignment: outlet may have closed or been changed since last visit.
